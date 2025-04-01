@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:quiz_app_riverpod/core/navigations/custom_navigation_helper.dart';
+import 'package:quiz_app_riverpod/modules/auth/view/widget/app_logo_name.dart';
+import 'package:quiz_app_riverpod/modules/auth/view/widget/sign_up_and_login_text.dart';
+import 'package:quiz_app_riverpod/modules/auth/view/sign_up_view.dart';
 import 'package:quiz_app_riverpod/modules/auth/view_models/login_view_model.dart';
+import 'package:quiz_app_riverpod/modules/dashboard/dashboard_view.dart';
+import 'package:quiz_app_riverpod/utils/custom_textfield.dart';
+import 'package:quiz_app_riverpod/utils/primary_button.dart';
+import 'package:quiz_app_riverpod/utils/theme/colors.dart';
+import 'package:quiz_app_riverpod/utils/theme/textstyles.dart';
 
 class LoginView extends ConsumerStatefulWidget {
   const LoginView({super.key});
@@ -10,24 +19,11 @@ class LoginView extends ConsumerStatefulWidget {
 }
 
 class _LoginViewState extends ConsumerState<LoginView> {
-  bool loginWithEmail = true;
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController mobileController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-
-  @override
-  void dispose() {
-    emailController.dispose();
-    mobileController.dispose();
-    passwordController.dispose();
-    super.dispose();
-  }
-
   Future<void> _login() async {
-    final mobileOrEmail = loginWithEmail
-        ? emailController.text.trim()
-        : mobileController.text.trim();
-    final password = passwordController.text.trim();
+    final mobileOrEmail = ref.watch(loginWithEmail)
+        ? ref.watch(emailProvider).text.trim()
+        : ref.watch(mobileProvider).text.trim();
+    final password = ref.watch(passwordProvider).text.trim();
 
     if (mobileOrEmail.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -44,85 +40,91 @@ class _LoginViewState extends ConsumerState<LoginView> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(loginViewModelProvider);
-
-    // Handle success state
     if (state.isSuccess) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        // Navigate to home screen or perform other actions
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Login successful')),
         );
-        // Clear the form
-        emailController.clear();
-        mobileController.clear();
-        passwordController.clear();
-        // Reset the state
-        ref.read(loginViewModelProvider.notifier).state = LoginState.initial();
+        ref.read(emailProvider).clear();
+        ref.read(mobileProvider).clear();
+        ref.read(passwordProvider).clear();
+        pushReplacementPageAll(
+            context: context, destination: const DashboardView());
       });
     }
 
-    // Handle error state
     if (state.error != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(state.error!)),
         );
-        // Clear the error
-        ref.read(loginViewModelProvider.notifier).state =
-            state.copyWith(error: null);
       });
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
-      body: Padding(
+      appBar: AppBar(),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SignUpAndLoginText(
+            navigationWidget: SignUpView(),
+            isSignUn: false,
+          ),
+          const SizedBox(height: 10),
+          PrimaryButton(
+            buttonName: "Login",
+            onTap: state.isLoading ? null : _login,
+            isLoading: state.isLoading,
+            isBottomBar: true,
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            SwitchListTile(
-              title: Text(
-                  loginWithEmail ? 'Login with Email' : 'Login with Mobile'),
-              value: loginWithEmail,
-              onChanged: (value) {
-                setState(() {
-                  loginWithEmail = value;
-                });
-              },
-            ),
-            const SizedBox(height: 20),
-            if (loginWithEmail)
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                ),
+            const AppLogoName(),
+            const SizedBox(height: 50),
+            if (ref.watch(loginWithEmail))
+              CustomTextfield(
+                controller: ref.watch(emailProvider),
+                lable: "Email",
                 keyboardType: TextInputType.emailAddress,
-              ),
-            if (!loginWithEmail)
-              TextField(
-                controller: mobileController,
-                decoration: const InputDecoration(
-                  labelText: 'Mobile',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.phone,
+                hintText: "Enter here...",
+              )
+            else
+              CustomTextfield(
+                controller: ref.watch(mobileProvider),
+                lable: "Mobile",
+                keyboardType: TextInputType.emailAddress,
+                hintText: "Enter here...",
               ),
             const SizedBox(height: 20),
-            TextField(
-              controller: passwordController,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                border: OutlineInputBorder(),
-              ),
+            CustomTextfield(
+              controller: ref.watch(passwordProvider),
+              lable: "Password",
+              keyboardType: TextInputType.emailAddress,
+              hintText: "Enter here...",
               obscureText: true,
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: state.isLoading ? null : _login,
-              child: state.isLoading
-                  ? const CircularProgressIndicator()
-                  : const Text('Login'),
+            GestureDetector(
+              onTap: () {
+                ref.read(loginWithEmail.notifier).state =
+                    !ref.read(loginWithEmail.notifier).state;
+              },
+              child: Text(
+                ref.watch(loginWithEmail)
+                    ? 'Login with Email'
+                    : 'Login with Mobile',
+                style: textStyles14BBLUE.copyWith(
+                  decoration: TextDecoration.underline,
+                  decorationColor: colorBlack,
+                  color: colorBlack,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.5,
+                ),
+              ),
             ),
           ],
         ),
@@ -130,106 +132,3 @@ class _LoginViewState extends ConsumerState<LoginView> {
     );
   }
 }
-
-
-
-// import 'package:flutter/material.dart';
-
-// import '../../../utils/custom_textfield.dart';
-// import '../../../utils/primary_button.dart';
-// import '../../../utils/theme/colors.dart';
-// import '../../../utils/theme/textstyles.dart';
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-// import '../view_models/login_view_model.dart';
-
-// class LoginView extends ConsumerStatefulWidget {
-//   const LoginView({super.key});
-
-//   @override
-//   ConsumerState<LoginView> createState() => _LoginViewState();
-// }
-
-// class _LoginViewState extends ConsumerState<LoginView> {
-//   @override
-//   Widget build(BuildContext context) {
-//     final viewModel = ref.watch(loginViewModelProvider.notifier);
-//     final state = ref.watch(loginViewModelProvider);
-
-//     return Scaffold(
-//       bottomNavigationBar: PrimaryButton(
-//         onTap: () {
-//           if (state.isLoading) return;
-//           viewModel.login();
-//         },
-//         buttonColor: colorBlack,
-//         buttonName: "Login",
-//         isLoading: state.isLoading,
-//         isEnable: true,
-//         isBottomBar: true,
-//       ),
-//       body: SingleChildScrollView(
-//         padding: const EdgeInsets.all(16),
-//         child: Column(
-//           children: [
-//             const SizedBox(height: 50),
-//             Text(
-//               "Quiz App",
-//               style:
-//                   textStyles16BBOLD.copyWith(fontSize: 30, letterSpacing: 2.0),
-//               textAlign: TextAlign.center,
-//             ),
-//             const SizedBox(height: 50),
-//             viewModel.loginWithEmail
-//                 ? CustomTextfield(
-//                     lable: "Email",
-//                     hintText: "Enter your email here...",
-//                     controller: viewModel.emailController,
-//                     validator: viewModel.emailValidator,
-//                     keyboardType: TextInputType.emailAddress,
-//                   )
-//                 : CustomTextfield(
-//                     lable: "Mobile",
-//                     hintText: "Enter your mobile no here...",
-//                     controller: viewModel.emailController, // Reusing for mobile
-//                     keyboardType: TextInputType.phone,
-//                   ),
-//             const SizedBox(height: 20),
-//             CustomTextfield(
-//               lable: "Password",
-//               hintText: "Enter your password here...",
-//               controller: viewModel.passwordController,
-//               validator: viewModel.passwordValidator,
-//               obscureText: !viewModel.isPasswordVisible,
-//               suffixIcon: IconButton(
-//                 icon: Icon(
-//                   viewModel.isPasswordVisible
-//                       ? Icons.visibility
-//                       : Icons.visibility_off,
-//                 ),
-//                 onPressed: viewModel.togglePasswordVisibility,
-//               ),
-//             ),
-//             const SizedBox(height: 20),
-//             TextButton(
-//               onPressed: viewModel.toggleLoginMethod,
-//               child: Text(
-//                 viewModel.loginWithEmail
-//                     ? "Login with Mobile Number"
-//                     : "Login with Email",
-//               ),
-//             ),
-//             if (state.hasError)
-//               Padding(
-//                 padding: const EdgeInsets.only(top: 16.0),
-//                 child: Text(
-//                   state.error.toString(),
-//                   style: const TextStyle(color: Colors.red),
-//                 ),
-//               ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }

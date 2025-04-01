@@ -1,7 +1,10 @@
 class ApiUrls {
-  static const String baseURL = "your-base-url";
+  static const String baseURL =
+      "https://golangdemo-production.up.railway.app/api";
 
   static const String login = "/login";
+  static const String signup = "/signup";
+
   static const String getUserDetails = "/get-user-details";
   static const String getQuestionsCategory = "/questions/get-categories";
   static const String getQuestionsByCategory =

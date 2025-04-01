@@ -1,10 +1,16 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:quiz_app_riverpod/core/api/dio_client.dart';
-import '../model/login_request.dart';
+import 'package:quiz_app_riverpod/modules/auth/model/signup_request.dart';
 import '../model/user_details.dart';
 import '../repository/auth_repo_impl.dart';
 
+final nameProvider = StateProvider.autoDispose<TextEditingController>((ref) {
+  return TextEditingController();
+});
+final dobProvider = StateProvider.autoDispose<TextEditingController>((ref) {
+  return TextEditingController();
+});
 final emailProvider = StateProvider.autoDispose<TextEditingController>((ref) {
   return TextEditingController();
 });
@@ -17,32 +23,37 @@ final passwordProvider =
   return TextEditingController();
 });
 
-final loginWithEmail = StateProvider.autoDispose<bool>(
-  (ref) => false,
-);
-
-final loginViewModelProvider =
-    StateNotifierProvider<LoginViewModel, LoginState>((ref) {
+final signUpViewModelProvider =
+    StateNotifierProvider<SignUpViewModel, SignUpState>((ref) {
   final dio = DioClient();
   dio.init();
   final authRepository = AuthRepoImpl(dio);
-  return LoginViewModel(authRepository);
+  return SignUpViewModel(authRepository);
 });
 
-class LoginViewModel extends StateNotifier<LoginState> {
+class SignUpViewModel extends StateNotifier<SignUpState> {
   final AuthRepoImpl _authRepository;
 
-  LoginViewModel(this._authRepository) : super(LoginState.initial());
+  SignUpViewModel(this._authRepository) : super(SignUpState.initial());
 
-  Future<void> login(String mobileOrEmail, String password) async {
+  Future<void> signUp(
+    String email,
+    String name,
+    String mobile,
+    String password,
+    String dob,
+  ) async {
     state = state.copyWith(isLoading: true, error: null);
 
-    final request = LoginRequest(
-      mobileOrEmail: mobileOrEmail,
+    final request = SignUpRequest(
+      name: name,
       password: password,
+      mobile: mobile,
+      email: email,
+      dob: "2000-01-01",
     );
 
-    final result = await _authRepository.login(request: request);
+    final result = await _authRepository.signUp(request: request);
 
     result.fold((l) async {
       state = state.copyWith(
@@ -50,43 +61,43 @@ class LoginViewModel extends StateNotifier<LoginState> {
         userDetails: l,
         isSuccess: true,
       );
-      LoginState.initial();
+      state = SignUpState.initial();
     }, (r) {
       print(r);
       state = state.copyWith(
         isLoading: false,
         error: r.toString(),
       );
-      LoginState.initial();
+      state = SignUpState.initial();
     });
   }
 }
 
-class LoginState {
+class SignUpState {
   final bool isLoading;
   final String? error;
   final UserDetailsModel? userDetails;
   final bool isSuccess;
 
-  LoginState({
+  SignUpState({
     required this.isLoading,
     this.error,
     this.userDetails,
     required this.isSuccess,
   });
 
-  factory LoginState.initial() => LoginState(
+  factory SignUpState.initial() => SignUpState(
         isLoading: false,
         isSuccess: false,
       );
 
-  LoginState copyWith({
+  SignUpState copyWith({
     bool? isLoading,
     String? error,
     UserDetailsModel? userDetails,
     bool? isSuccess,
   }) {
-    return LoginState(
+    return SignUpState(
       isLoading: isLoading ?? this.isLoading,
       error: error,
       userDetails: userDetails ?? this.userDetails,

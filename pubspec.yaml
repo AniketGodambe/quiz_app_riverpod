@@ -38,6 +38,7 @@ dependencies:
   dio: ^5.8.0+1
   flutter_riverpod: ^2.6.1
   dartz: ^0.10.1
+  intl:
 
 dev_dependencies:
   flutter_test:

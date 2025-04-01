@@ -75,19 +75,22 @@ class CustomTextfield extends StatelessWidget {
           maxLines: maxLines,
           onEditingComplete: onEditingC,
           obscureText: obscureText,
-          onChanged: (value) {
-            cOnChanged!(value);
-            if (isValidator) {
-              Form.of(context).validate();
-            }
-          },
+          onChanged: cOnChanged,
           controller: controller,
           keyboardType: keyboardType,
           maxLength: maxLength,
           buildCounter: null,
           enabled: isEnabled,
           readOnly: isReadOnly,
-          validator: validator,
+          validator: !isValidator
+              ? null
+              : validator ??
+                  (value) {
+                    if (value!.isEmpty) {
+                      return "$lable is required";
+                    }
+                    return null;
+                  },
           onFieldSubmitted: (value) {
             FocusScope.of(context).unfocus();
           },
